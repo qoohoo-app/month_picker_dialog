@@ -10,9 +10,13 @@ class YearSelector extends StatefulWidget {
   final ValueChanged<int> onYearSelected;
   final DateTime? initialDate, firstDate, lastDate;
   final PublishSubject<UpDownPageLimit> upDownPageLimitPublishSubject;
-  final PublishSubject<UpDownButtonEnableState>
-      upDownButtonEnableStatePublishSubject;
+  final PublishSubject<UpDownButtonEnableState> upDownButtonEnableStatePublishSubject;
   final Locale? locale;
+
+  final Color selectedYearColor;
+  final Color selectedYearTextColor;
+  final Color currentYearTextColor;
+
   const YearSelector({
     Key? key,
     required DateTime this.initialDate,
@@ -22,6 +26,9 @@ class YearSelector extends StatefulWidget {
     this.firstDate,
     this.lastDate,
     this.locale,
+    this.selectedYearColor = Colors.blue,
+    this.selectedYearTextColor = Colors.black,
+    this.currentYearTextColor = Colors.purple,
   })  : assert(initialDate != null),
         assert(onYearSelected != null),
         assert(upDownPageLimitPublishSubject != null),
@@ -44,8 +51,7 @@ class YearSelectorState extends State<YearSelector> {
         itemBuilder: _yearGridBuilder,
       );
 
-  Widget _yearGridBuilder(final BuildContext context, final int page) =>
-      GridView.count(
+  Widget _yearGridBuilder(final BuildContext context, final int page) => GridView.count(
         physics: const NeverScrollableScrollPhysics(),
         padding: EdgeInsets.all(8.0),
         crossAxisCount: 4,
@@ -56,18 +62,16 @@ class YearSelectorState extends State<YearSelector> {
       );
 
   Widget _getYearButton(final int page, final int index, final String locale) {
-    final int year = (widget.firstDate == null ? 0 : widget.firstDate!.year) +
-        page * 12 +
-        index;
-    final bool isEnabled = _isEnabled(year);
+    final year = (widget.firstDate == null ? 0 : widget.firstDate!.year) + page * 12 + index;
+    final isEnabled = _isEnabled(year);
     return FlatButton(
       onPressed: isEnabled ? () => widget.onYearSelected(year) : null,
-      color: year == widget.initialDate!.year
-          ? Theme.of(context).accentColor
-          : null,
+      color: year == widget.initialDate!.year ? widget.selectedYearColor : null,
       textColor: year == widget.initialDate!.year
-          ? Theme.of(context).accentTextTheme.button!.color
-          : year == DateTime.now().year ? Theme.of(context).accentColor : null,
+          ? widget.selectedYearTextColor
+          : year == DateTime.now().year
+              ? widget.currentYearTextColor
+              : null,
       child: Text(
         DateFormat.y(locale).format(DateTime(year)),
       ),
@@ -76,12 +80,8 @@ class YearSelectorState extends State<YearSelector> {
 
   void _onPageChange(final int page) {
     widget.upDownPageLimitPublishSubject.add(new UpDownPageLimit(
-        widget.firstDate == null
-            ? page * 12
-            : widget.firstDate!.year + page * 12,
-        widget.firstDate == null
-            ? page * 12 + 11
-            : widget.firstDate!.year + page * 12 + 11));
+        widget.firstDate == null ? page * 12 : widget.firstDate!.year + page * 12,
+        widget.firstDate == null ? page * 12 + 11 : widget.firstDate!.year + page * 12 + 11));
     if (page == 0 || page == _getPageCount() - 1) {
       widget.upDownButtonEnableStatePublishSubject.add(
         new UpDownButtonEnableState(page > 0, page < _getPageCount() - 1),
@@ -131,8 +131,8 @@ class YearSelectorState extends State<YearSelector> {
             : widget.firstDate!.year + _pageController!.page!.toInt() * 12 + 11,
       ));
       widget.upDownButtonEnableStatePublishSubject.add(
-        new UpDownButtonEnableState(_pageController!.page!.toInt() > 0,
-            _pageController!.page!.toInt() < _getPageCount() - 1),
+        new UpDownButtonEnableState(
+            _pageController!.page!.toInt() > 0, _pageController!.page!.toInt() < _getPageCount() - 1),
       );
     });
   }
@@ -151,13 +151,9 @@ class YearSelectorState extends State<YearSelector> {
         year >= widget.firstDate!.year &&
         year <= widget.lastDate!.year)
       return true;
-    else if (widget.firstDate != null &&
-        widget.lastDate == null &&
-        year >= widget.firstDate!.year)
+    else if (widget.firstDate != null && widget.lastDate == null && year >= widget.firstDate!.year)
       return true;
-    else if (widget.firstDate == null &&
-        widget.lastDate != null &&
-        year <= widget.lastDate!.year)
+    else if (widget.firstDate == null && widget.lastDate != null && year <= widget.lastDate!.year)
       return true;
     else
       return false;

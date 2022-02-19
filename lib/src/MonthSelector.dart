@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:month_picker_dialog/src/common.dart';
@@ -10,9 +9,13 @@ class MonthSelector extends StatefulWidget {
   final ValueChanged<DateTime> onMonthSelected;
   final DateTime? openDate, selectedDate, firstDate, lastDate;
   final PublishSubject<UpDownPageLimit> upDownPageLimitPublishSubject;
-  final PublishSubject<UpDownButtonEnableState>
-      upDownButtonEnableStatePublishSubject;
+  final PublishSubject<UpDownButtonEnableState> upDownButtonEnableStatePublishSubject;
   final Locale? locale;
+
+  final Color selectedMonthColor;
+  final Color selectedMonthTextColor;
+  final Color currentMonthTextColor;
+
   const MonthSelector({
     Key? key,
     required DateTime this.openDate,
@@ -20,6 +23,9 @@ class MonthSelector extends StatefulWidget {
     required this.onMonthSelected,
     required this.upDownPageLimitPublishSubject,
     required this.upDownButtonEnableStatePublishSubject,
+    required this.selectedMonthColor,
+    required this.selectedMonthTextColor,
+    required this.currentMonthTextColor,
     this.firstDate,
     this.lastDate,
     this.locale,
@@ -46,39 +52,29 @@ class MonthSelectorState extends State<MonthSelector> {
         itemBuilder: _yearGridBuilder,
       );
 
-  Widget _yearGridBuilder(final BuildContext context, final int page) =>
-      GridView.count(
+  Widget _yearGridBuilder(final BuildContext context, final int page) => GridView.count(
         physics: const NeverScrollableScrollPhysics(),
         padding: EdgeInsets.all(8.0),
         crossAxisCount: 4,
         children: List<Widget>.generate(
           12,
           (final int index) => _getMonthButton(
-              DateTime(
-                  widget.firstDate != null
-                      ? widget.firstDate!.year + page
-                      : page,
-                  index + 1),
+              DateTime(widget.firstDate != null ? widget.firstDate!.year + page : page, index + 1),
               getLocale(context, selectedLocale: widget.locale)),
         ).toList(growable: false),
       );
 
   Widget _getMonthButton(final DateTime date, final String locale) {
-    final bool isEnabled = _isEnabled(date);
+    final isEnabled = _isEnabled(date);
     return FlatButton(
-      onPressed: isEnabled
-          ? () => widget.onMonthSelected(DateTime(date.year, date.month))
+      onPressed: isEnabled ? () => widget.onMonthSelected(DateTime(date.year, date.month)) : null,
+      color: date.month == widget.selectedDate!.month && date.year == widget.selectedDate!.year
+          ? widget.selectedMonthColor
           : null,
-      color: date.month == widget.selectedDate!.month &&
-              date.year == widget.selectedDate!.year
-          ? Theme.of(context).accentColor
-          : null,
-      textColor: date.month == widget.selectedDate!.month &&
-              date.year == widget.selectedDate!.year
-          ? Theme.of(context).accentTextTheme.button!.color
-          : date.month == DateTime.now().month &&
-                  date.year == DateTime.now().year
-              ? Theme.of(context).accentColor
+      textColor: date.month == widget.selectedDate!.month && date.year == widget.selectedDate!.year
+          ? widget.selectedMonthTextColor
+          : date.month == DateTime.now().month && date.year == DateTime.now().year
+              ? widget.currentMonthTextColor
               : null,
       child: Text(
         DateFormat.MMM(locale).format(date),
@@ -112,9 +108,7 @@ class MonthSelectorState extends State<MonthSelector> {
   @override
   void initState() {
     _pageController = new PageController(
-        initialPage: widget.firstDate == null
-            ? widget.openDate!.year
-            : widget.openDate!.year - widget.firstDate!.year);
+        initialPage: widget.firstDate == null ? widget.openDate!.year : widget.openDate!.year - widget.firstDate!.year);
     super.initState();
     new Future.delayed(Duration.zero, () {
       widget.upDownPageLimitPublishSubject.add(
@@ -148,13 +142,9 @@ class MonthSelectorState extends State<MonthSelector> {
         widget.firstDate!.compareTo(date) <= 0 &&
         widget.lastDate!.compareTo(date) >= 0)
       return true;
-    else if (widget.firstDate != null &&
-        widget.lastDate == null &&
-        widget.firstDate!.compareTo(date) <= 0)
+    else if (widget.firstDate != null && widget.lastDate == null && widget.firstDate!.compareTo(date) <= 0)
       return true;
-    else if (widget.firstDate == null &&
-        widget.lastDate != null &&
-        widget.lastDate!.compareTo(date) >= 0)
+    else if (widget.firstDate == null && widget.lastDate != null && widget.lastDate!.compareTo(date) >= 0)
       return true;
     else
       return false;
